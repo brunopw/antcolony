@@ -7,7 +7,7 @@ public class Edge {
 
 	private Node node1, node2;
 	private int weight;
-	private BigDecimal txy, nxy, tnxy, pxy;
+	private BigDecimal txy, nxy, tnxy, pxy, pheromone;
 
 	public Edge(Node node1, Node node2, int weight) {
 		this.node1 = node1;
@@ -75,8 +75,17 @@ public class Edge {
 		this.pxy = pxy;
 	}
 	
+	public BigDecimal getPheromone() {
+		return pheromone;
+	}
+
+	public void setPheromone(BigDecimal pheromone) {
+		this.pheromone = pheromone;
+	}
+
 	public boolean isBetween(Node node1, Node node2) {
-		return (this.node1 == node1 && this.node2 == node2);
+		return ( (this.node1 == node1 && this.node2 == node2) ||
+				 (this.node2 == node1 && this.node1 == node2));
 	}
 
 	public String toString() {
@@ -87,6 +96,24 @@ public class Edge {
 		sb.append(node2.getId());
 		sb.append("  Weight: ");
 		sb.append(weight);
+
+		return sb.toString();
+	}
+	
+	public String toString(Node n) {
+		StringBuilder sb = new StringBuilder();
+		
+		if(n == node1) { 
+			sb.append(node1.getId());
+			sb.append(" - ");
+			sb.append(node2.getId());
+		} else {
+			sb.append(node2.getId());
+			sb.append(" - ");
+			sb.append(node1.getId());
+		}
+		//sb.append("  Weight: ");
+		//sb.append(weight);
 
 		return sb.toString();
 	}

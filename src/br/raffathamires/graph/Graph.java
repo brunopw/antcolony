@@ -1,5 +1,6 @@
 package br.raffathamires.graph;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,13 +8,15 @@ import java.util.Map;
 public class Graph {
 	// undirectedGraph
 	private int nodes;
-	private int edges;
+	//private int edges;
 	private Map<Integer, Node> adjacencyList;
+	private ArrayList<Edge> edges;
 
 	public Graph() {
 		nodes = 0;
-		edges = 0;
+		//edges = 0;
 		adjacencyList = new HashMap<>();
+		edges = new ArrayList<Edge>();
 	}
 	
 	public Node getStartNode() {
@@ -56,14 +59,16 @@ public class Graph {
 		if (!adjacencyList.containsKey(id1) || !adjacencyList.containsKey(id2)) {
 			throw new RuntimeException("Node doesn't exist! Edge: (" + id1 + " - " + id2 + ")");
 		}
-
+		
 		// add the edge
 		Node node1 = getNode(id1);
 		Node node2 = getNode(id2);
 
-		if (node1.addEdge(node2, weight) && node2.addEdge(node1, weight)) {
-			edges++;
-			return true;
+		Edge newEdge = new Edge(node1, node2, weight);
+		
+		if (node1.addEdge(newEdge) && node2.addEdge(newEdge)) {
+			//edges++;
+			return edges.add(newEdge);
 		}
 
 		return false;
@@ -78,7 +83,13 @@ public class Graph {
 		Node node2 = getNode(id2);
 
 		if (node1.removeEdgeFromNode(node2) && node2.removeEdgeFromNode(node1)) {
-			edges--;
+			//edges--;
+			for(Edge e : edges) {
+				if(e.isBetween(node1, node2)) {
+					edges.remove(e);
+					break;
+				}
+			}
 			return true;
 		}
 		return false;
@@ -92,10 +103,18 @@ public class Graph {
 		return nodes;
 	}
 
-	public int edgeCount() {
+	/*public int edgeCount() {
+		return edges;
+	}
+*/
+	public ArrayList<Edge> getEdges() {
 		return edges;
 	}
 
+	public void setEdges(ArrayList<Edge> edges) {
+		this.edges = edges;
+	}
+	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 
@@ -106,7 +125,8 @@ public class Graph {
 		sb.append(nodeCount());
 		
 		sb.append("\n--Edges: ");
-		sb.append(edgeCount());
+		//sb.append(edgeCount());
+		sb.append(edges.size());
 		
 		return sb.toString();
 	}

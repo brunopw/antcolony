@@ -34,6 +34,20 @@ public class Node {
 		}
 		return edges.add(new Edge(this, node, weight));
 	}
+	
+	public boolean addEdge(Edge edge) {
+		for(Edge e : edges) {
+			if(e.isBetween(edge.getNode1(), edge.getNode2())) return false;
+		}
+		return edges.add(edge);
+	}
+	
+	public boolean removeEdge(Edge edge) {
+		for(Edge e : edges) {
+			if(e.isBetween(edge.getNode1(), edge.getNode2())) return edges.remove(e);
+		}
+		return false;
+	}
 
 	public boolean removeEdgeFromNode(Node node) {
 		Optional<Edge> optional = findEdge(node);

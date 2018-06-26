@@ -15,17 +15,18 @@ public class AntColonyOptimization {
 	private ArrayList<Ant> ants;
 
 	// Parameters
-	// private double c = 1.0;
 	private double alpha = 1;
 	private double beta = 1;
 	private double pheromoneEvaporation = 0.01;
-	private double initialPheromone = 0.1;
-	private double Q = 10;
+	private BigDecimal initialPheromone = new BigDecimal("0.1");
+	private BigDecimal Q = new BigDecimal("10");
 
 	private int numOfNodes = 5;
-	private int numOfAnts = 10;
+	private int numOfAnts = 5;
 
-	private int iterations = 0;
+	private int iterations = 8;
+	private boolean iterationFinished = false;
+	private int returnedAntsInIteration = 0;
 
 	// private double antFactor = 0.8;
 	// private double randomFactor = 0.01;
@@ -36,10 +37,11 @@ public class AntColonyOptimization {
 	}
 	
 	public void start() {
-		//atualizar os feromonios
-		//faz um for usando as iterations
-		//quando a ultima ant voltar, ai imprime a iteração e começa uma nova até o max de iterations
-		startAnts();
+		try {
+			startAnts();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void createGraph() {
@@ -63,24 +65,83 @@ public class AntColonyOptimization {
 		graph.addEdge(3, 5, 23);
 
 		graph.addEdge(4, 5, 35);
+		
+		// Aplica o pheromonio inicial em todas arestas
+		graph.getAdjacencyList().forEach(n -> n.getEdges().forEach(e -> e.setPheromone(initialPheromone)));
 	}
 
 	private void createAnts() {
+		//Random r = new Random();
+		//int randomNumber = r.nextInt(1000);
+		//[r.nextInt(numOfNodes)]
 		ants = new ArrayList<Ant>();
 		for (int i = 1; i <= numOfAnts; i++) {
-			Ant ant = new Ant(i, graph.getStartNode(), this);
+			Ant ant = new Ant(i, (Node)graph.getAdjacencyList().toArray()[i-1], this);
 			ants.add(ant);
 		}
 	}
 
-	private void startAnts() {
-		for (Ant ant : ants) {
-			ant.run();
+	private void startAnts() throws InterruptedException {
+		for(int i = 1; i <= iterations; i++) {
+			//System.out.println("___________ITERAÇÃO " + i + "_____________");
+			for (Ant ant : ants) {
+				ant.run();
+			}
+			while(!iterationFinished) {
+				Thread.sleep(10);
+			}
+			//System.out.println("__________________________________\n\n");
+			iterationFinished = false;
+			
+			getProbabilities();
+			
+			//atualizar os feromonios
+			updatePheromone();
+			
+			for (Ant ant : ants) {
+				ant.resetAnt();
+			}
+		}
+	}
+	
+	public void antReturned() {
+		returnedAntsInIteration++;
+		if(returnedAntsInIteration == numOfAnts) {
+			iterationFinished = true;
+			returnedAntsInIteration = 0;
 		}
 	}
 
 	public String printGraph() {
 		return graph.toString();
+	}
+	
+	public void updatePheromone() {
+	
+		for(Edge e : graph.getEdges()) {
+			BigDecimal oldPheromoneWithEvaporation = new BigDecimal(1-pheromoneEvaporation).multiply(e.getNxy()).setScale(3, RoundingMode.HALF_UP);
+			BigDecimal newPheromone = new BigDecimal("0");
+			for(Ant a : ants) {
+				if(a.haveEdge(e)) {
+					newPheromone = newPheromone.add(Q.divide(new BigDecimal(a.getTotalTrailWeight()), 3, RoundingMode.HALF_UP));
+				}
+			}
+			
+			e.setPheromone(oldPheromoneWithEvaporation.add(newPheromone));
+			//System.out.println(e.toString());
+			//System.out.println(e.getPheromone());
+			//System.out.println("\n");
+		}
+		
+		//System.out.println("Iteration compleate");
+		//pega as rotas(edges)
+		//calcula (1-pheromoneEvaporation) x Txy (0.1)
+		//                0.99             x 0.1 = 0,099
+		// fereomonio liberado pelas formigas que passaram em cada rota
+		// ROTA 1-2 teve formigas F1, F4 e F5
+		// feromonio solto = Q / dF1 = 10 / 130
+		//  F1 soltou 0,077 na ROTA A-B
+		// TOTAL DE FEROMONIOS + feromonio presente após a evaporação (0.99)
 	}
 
 	// Distancia
@@ -91,15 +152,16 @@ public class AntColonyOptimization {
 	}
 
 	// Feromonio
-	public BigDecimal getNxy() {
-		BigDecimal nxy = new BigDecimal("0.1");
-		BigDecimal feromonio = new BigDecimal(1);
-		return nxy.divide(feromonio, 1, RoundingMode.HALF_UP);
+	public BigDecimal getNxy(Edge e) {
+		//BigDecimal nxy = new BigDecimal("0.1");
+		//BigDecimal feromonio = e.getPheromone();
+		//return nxy.divide(feromonio, 1, RoundingMode.HALF_UP);
+		return e.getPheromone();
 	}
 
 	// Feromonio * Distancia (Inverso distância e Feromônio presente)
 	public BigDecimal getTnxy(Edge e) {
-		return getTxy(e).multiply(getNxy()).setScale(3, RoundingMode.HALF_UP);
+		return getTxy(e).multiply(getNxy(e)).setScale(3, RoundingMode.HALF_UP);
 	}
 
 	// Probabilidada da formiga de escolher a aresta =
@@ -145,12 +207,30 @@ public class AntColonyOptimization {
 	}
 
 	public String getProbabilities() {
+		System.out.println("Rotas | Distância | t(xy) | n(xy) | t(xy) * n(xy) | P(xy) | P(xy)%");
+		
 		StringBuilder sb = new StringBuilder();
 
 		for (Node n : graph.getAdjacencyList()) {
 			ArrayList<Edge> edgesProbabilitie = new ArrayList<Edge>();
 
 			for (Edge e : n.getEdges()) {
+				System.out.print(e.toString(n) + "      ");
+				System.out.print(e.getWeight() + "       ");
+				e.setTxy(getTxy(e));
+				System.out.print(e.getTxy() + "   ");
+				e.setNxy(getNxy(e));
+				System.out.print(e.getNxy() + "       ");
+				e.setTnxy(getTnxy(e));
+				System.out.print(e.getTnxy() + "       ");
+				e.setPxy(getPxy(n, e));
+				edgesProbabilitie.add(e);
+				System.out.print(e.getPxy() + "   ");
+				System.out.println(getPercent(e.getPxy())+"%");
+				
+			}
+			
+			/*for (Edge e : n.getEdges()) {
 				sb.append("Rota ");
 				sb.append(e.getNode1().getId());
 				sb.append(" - ");
@@ -167,7 +247,7 @@ public class AntColonyOptimization {
 				sb.append("\n");
 
 				sb.append("Nxy (Feromônio) ");
-				e.setNxy(getNxy());
+				e.setNxy(getNxy(e));
 				sb.append(e.getNxy());
 				sb.append("\n");
 
@@ -188,7 +268,7 @@ public class AntColonyOptimization {
 				sb.append("%\n");
 
 				sb.append("\n");
-			}
+			}*/
 
 			Edge selected = rouletteWheel(edgesProbabilitie);
 			if (selected == null)
@@ -197,7 +277,7 @@ public class AntColonyOptimization {
 			sb.append(selected.toString());
 			sb.append("\n\n");
 		}
-
+		System.out.println("\n");
 		return sb.toString();
 	}
 

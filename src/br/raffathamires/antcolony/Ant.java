@@ -22,8 +22,6 @@ public class Ant implements Runnable {
 		this.trail = new ArrayList<>();
 		this.totalTrailWeight = 0;
 		this.aco = aco;
-
-		trail.add(startPosition);
 	}
 
 	public int getId() {
@@ -83,7 +81,7 @@ public class Ant implements Runnable {
 			sb.append("\n");
 
 			sb.append("Nxy (Feromônio) ");
-			e.setNxy(aco.getNxy());
+			e.setNxy(aco.getNxy(e));
 			sb.append(e.getNxy());
 			sb.append("\n");
 
@@ -138,9 +136,24 @@ public class Ant implements Runnable {
 
 		//System.out.println(sb.toString());
 	}
+	
+	public boolean haveEdge(Edge e) {
+		for(int i = 0; i < getTrail().size()-1; i++) {
+			if(e.isBetween(getTrail().get(i), getTrail().get(i+1))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public void resetAnt() {
+		this.trail = new ArrayList<>();
+		this.totalTrailWeight = 0;
+	}
 
 	@Override
 	public void run() {
+		trail.add(startPosition);
 		while (totalTrailWeight == 0 || position != startPosition) {
 			move();
 		}
@@ -149,18 +162,20 @@ public class Ant implements Runnable {
 		sb.append("@-o > Ant ");
 		sb.append(getId());
 		sb.append("\n");
-		sb.append("Custo total da rota: ");
-		sb.append(totalTrailWeight);
-		sb.append("\n");
-		
+				
 		sb.append("Rota: ");
 		for(Node n : trail) {
 			sb.append(n.getId());
 			sb.append(" -> ");
 		}
 		sb.append(startPosition.getId());
+		sb.append("\n");
+		sb.append("Distância total percorrida: ");
+		sb.append(totalTrailWeight);
+		sb.append("\n");
 		
 		System.out.println(sb.toString());
+		aco.antReturned();
 	}
 
 }
