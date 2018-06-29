@@ -17,14 +17,14 @@ public class AntColonyOptimization {
 	// Parameters
 	private double alpha = 1;
 	private double beta = 1;
-	private double pheromoneEvaporation = 0.01;
-	private BigDecimal initialPheromone = new BigDecimal("0.1");
-	private BigDecimal Q = new BigDecimal("10");
+	private double pheromoneEvaporation = 0.01; //sigma
+	private BigDecimal initialPheromone = new BigDecimal("0.1"); //feromônio inicial
+	private BigDecimal Q = new BigDecimal("10"); //constante de atualização do feromônio
 
 	private int numOfNodes = 5;
 	private int numOfAnts = 5;
 
-	private int iterations = 8;
+	private int iterations = 6;
 	private boolean iterationFinished = false;
 	private int returnedAntsInIteration = 0;
 
@@ -180,30 +180,27 @@ public class AntColonyOptimization {
 	public BigDecimal getPercent(BigDecimal bg) {
 		return bg.multiply(new BigDecimal("100")).setScale(1, RoundingMode.HALF_UP);
 	}
-
+	
 	public Edge rouletteWheel(ArrayList<Edge> values) {
 		ArrayList<Integer> normalizedValues = new ArrayList<Integer>();
-		BigDecimal sum = new BigDecimal(values.stream().mapToDouble(e -> e.getPxy().doubleValue()).sum()).setScale(3, RoundingMode.HALF_UP);
+		BigDecimal sumPxy = new BigDecimal(values.stream().mapToDouble(e -> e.getPxy().doubleValue()).sum()).setScale(3, RoundingMode.HALF_UP);
+		
 		for(Edge e : values) {
-			normalizedValues.add(e.getPxy().divide(sum, 3, RoundingMode.HALF_UP).multiply(new BigDecimal("1000")).setScale(1, RoundingMode.HALF_UP).intValue());
+			normalizedValues.add(e.getPxy().divide(sumPxy, 3, RoundingMode.HALF_UP).multiply(new BigDecimal("1000")).setScale(1, RoundingMode.HALF_UP).intValue());
 		}
-		if(normalizedValues.stream().mapToInt(v -> v).sum() < 1000) {
-			int val = normalizedValues.get(normalizedValues.size()-1) + 1;
-			normalizedValues.set(normalizedValues.size()-1, val);
-		}
+		
+		int sum = sumPxy.multiply(new BigDecimal("1000")).intValue();
 		
 		Random r = new Random();
-		int randomNumber = r.nextInt(1000);
-		int valueSum = 0;
+		int randomNumber = r.nextInt(sum);
 		
-		for (int i = 0; i < normalizedValues.size(); i++) {
-			Edge e = values.get(i);
-			valueSum += normalizedValues.get(i);
-			if (randomNumber <= valueSum)
-				return e;
-		}
+		int posicaoEscolhida = -1;
+		do {
+			posicaoEscolhida++;
+			sum -= normalizedValues.get(posicaoEscolhida);
+		} while (sum > 0);
 
-		return null;
+		return values.get(posicaoEscolhida);
 	}
 
 	public String getProbabilities() {
